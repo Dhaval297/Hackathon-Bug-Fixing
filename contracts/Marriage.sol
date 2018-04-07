@@ -20,7 +20,7 @@ contract Marriage {
     /// It is confidential data, shouldn't be seen by everyone. 
     
     /* Fix_1(2): Put restrict the access of the data */
-    mapping(uint256 => Couple) public coupleData;
+    mapping(uint256 => Couple) private coupleData;
     
     /// @notice true refers to user get married, False refers to opposite
     mapping(address => bool) public isUserMarried;
@@ -30,6 +30,7 @@ contract Marriage {
 
     function Marriage() public {
         /* Fix_2(3):Set the lawyer which publish this contract */
+        lawyer=msg.sender
     }
 
     /**
@@ -43,8 +44,16 @@ contract Marriage {
         require(msg.sender == _groom || msg.sender == _bride);
         
         /* Fix_3(3): check that Groom & Bride both are unmarried, otherwise throw */
-        
+        required(isUserMarried)
+        {
+            throw;
+        }
+        couple c;
         /* Fix_4(3): check that sent Ether value is equal to the FEE required, otherwise throw */
+        required(coupleData!=feeCollected)
+        {
+            throw;
+        }
         
         feeCollected = feeCollected + Fee;
         lastRegistryNo = lastRegistryNo + 1;
@@ -54,6 +63,8 @@ contract Marriage {
         isUserMarried[_bride] = true;
         
         /* Fix_5(3): Emit event related to successful marriage */
+        emit wedding(_groom,_bride);
+        
         return lastRegistryNo;
     }
 
@@ -65,6 +76,10 @@ contract Marriage {
      function approvedRequest(uint256 _registryNo) public {
      /* Fix_6(5): Write a modifier to check that certain function can only be called by lawyer and associate with this function*/
      
+     modifier onlylawyer{
+         required(msg.sender==lawyer);
+         _;
+     }
          if (coupleData[_registryNo].status == MarriageStatus(2)) {
              coupleData[_registryNo].status = MarriageStatus(1);
          } 
@@ -78,8 +93,13 @@ contract Marriage {
      * @param _registry Registry no. of marriage
      */
     function divorced(uint256 _registry) public {
+        modifer div{
+            couple.MarriageStatus=Divorced;
+            _;
+        }
         /* Fix_7(8): Asociate right modifier and set the couple status to  Divorced */
         /* Fix_8(3): Emit the right event related to successful Divorced */
+        emit divorced(_registry );
     }
 
     /// @notice only be called by the lawyer
